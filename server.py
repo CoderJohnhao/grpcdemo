@@ -48,7 +48,7 @@ def run():
     )
     pb2_grpc.add_HelloServerServicer_to_server(HelloServer(), grpc_server)
     grpc_server.add_insecure_port('0.0.0.0:5000')
-    print('server will start')
+    print('server started')
     grpc_server.start()
     try:
         while 1:
