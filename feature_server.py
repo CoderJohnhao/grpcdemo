@@ -8,12 +8,14 @@ import feature_pb2_grpc
 import feature_pb2
 import feature_db
 
+
 # 获取地点
 def get_feature(db, point):
     for feature in db:
         if feature.location == point:
             return feature
-        return None
+    return None
+
 
 # 获取坐标点之间的距离
 def get_distance(start, end):
@@ -36,6 +38,7 @@ def get_distance(start, end):
     # metres
     return R * c
 
+
 class RouteGuide(feature_pb2_grpc.RouteGuideServicer):
     def __init__(self):
         self.db = feature_db.read_feature_db()
@@ -43,8 +46,9 @@ class RouteGuide(feature_pb2_grpc.RouteGuideServicer):
     # 根据坐标点返回位置信息
     def GetFeature(self, request, context):
         feature = get_feature(self.db, request)
+        print('查询地址信息')
         if feature is None:
-            return feature_pb2.Feature(name='', location=request)
+            return feature_pb2.Feature(name='没有查到地址', location=request)
         else:
             return feature
 
@@ -54,9 +58,12 @@ class RouteGuide(feature_pb2_grpc.RouteGuideServicer):
         right = max(request.lo.longitude, request.hi.longitude)
         top = max(request.lo.latitude, request.hi.latitude)
         bottom = min(request.lo.latitude, request.hi.latitude)
+        print('获取区域内的地点')
+        print(left, right, top, bottom)
         for feature in self.db:
             if left <= feature.location.longitude <= right and bottom <= feature.location.latitude <= top:
-                yield feature
+                if feature.name != "" and feature.name is not None:
+                    yield feature
 
     # 记录路径
     def RecordRoute(self, request_iterator, context):
@@ -64,7 +71,7 @@ class RouteGuide(feature_pb2_grpc.RouteGuideServicer):
         feature_count = 0
         distance = 0.0
         prev_point = None
-
+        print("记录路径返回描述")
         start_time = time.time()
         for point in request_iterator:
             point_count += 1
@@ -85,10 +92,13 @@ class RouteGuide(feature_pb2_grpc.RouteGuideServicer):
     def RouteChat(self, request_iterator, context):
         prev_notes = []
         for new_note in request_iterator:
-            for prev_note in prev_notes:
-                if prev_note.location == new_note.location:
-                    yield prev_note
-            prev_notes.append(new_note)
+            # for prev_note in prev_notes:
+            print("聊天" + new_note.message)
+            #     yield prev_note
+            # prev_notes.append(new_note)
+            new_note.message = "我收到你的消息：" + new_note.message
+            yield new_note
+
 
 def run():
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
